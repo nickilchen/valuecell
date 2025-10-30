@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . /app
 
 RUN apt-get update && \
-    apt-get install -y curl
+    apt-get install -y curl zip unzip g++ gcc make cmake
 
 # Install the application dependencies.
 RUN bash start.sh
