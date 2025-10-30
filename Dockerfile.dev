@@ -1,0 +1,84 @@
+# ============================================
+# ValueCell 开发环境 Dockerfile
+# 用于快速开发和调试
+# ============================================
+
+FROM python:3.12-slim
+
+LABEL maintainer="ValueCell Team"
+LABEL description="ValueCell Development Environment"
+
+WORKDIR /app
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    build-essential \
+    ca-certificates \
+    # Playwright 依赖
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libdbus-1-3 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# 安装 bun (用于前端开发)
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
+
+# 复制项目文件
+COPY . /app/
+
+# 设置工作目录
+WORKDIR /app/python
+
+# 安装 Python 依赖
+RUN uv venv --python 3.12 && \
+    uv sync --group dev && \
+    uv run playwright install --with-deps chromium
+
+# 安装第三方 Agent 依赖
+RUN cd /app/python/third_party/ai-hedge-fund && \
+    if [ -f "pyproject.toml" ]; then uv venv --python 3.12 && uv sync; fi
+
+RUN cd /app/python/third_party/TradingAgents && \
+    if [ -f "pyproject.toml" ]; then uv venv --python 3.12 && uv sync; fi
+
+# 安装前端依赖
+WORKDIR /app/frontend
+RUN bun install
+
+# 创建必要的目录
+RUN mkdir -p /app/logs /app/lancedb /app/.knowledgebase
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8 \
+    PATH="/app/python/.venv/bin:$PATH" \
+    APP_ENVIRONMENT=development \
+    API_DEBUG=true
+
+WORKDIR /app
+
+# 暴露端口
+EXPOSE 8000 1420
+
+# 开发环境默认命令
+CMD ["/bin/bash"]

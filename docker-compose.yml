@@ -1,0 +1,78 @@
+# ============================================
+# ValueCell Docker Compose 配置
+# ============================================
+
+version: '3.8'
+
+services:
+  valuecell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: valuecell:latest
+    container_name: valuecell
+    restart: unless-stopped
+    
+    # 端口映射
+    ports:
+      - "8000:8000"    # 后端 API 和前端
+    
+    # 环境变量文件
+    env_file:
+      - .env
+    
+    # 环境变量覆盖
+    environment:
+      - APP_ENVIRONMENT=production
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - PYTHONUNBUFFERED=1
+    
+    # 数据卷挂载
+    volumes:
+      # 配置文件 (推荐挂载你自己的 .env)
+      - ./.env:/app/.env:ro
+      
+      # 持久化数据
+      - valuecell-logs:/app/logs
+      - valuecell-db:/app/lancedb
+      - valuecell-knowledge:/app/.knowledgebase
+      - valuecell-sqlite:/app/python
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # 资源限制 (可选，根据需要调整)
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+    
+    # 网络配置
+    networks:
+      - valuecell-network
+
+# 数据卷定义
+volumes:
+  valuecell-logs:
+    driver: local
+  valuecell-db:
+    driver: local
+  valuecell-knowledge:
+    driver: local
+  valuecell-sqlite:
+    driver: local
+
+# 网络定义
+networks:
+  valuecell-network:
+    driver: bridge
