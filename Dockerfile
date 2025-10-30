@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . /app
 
 RUN apt-get update && \
-    apt-get curl
+    apt-get install curl
 
 # Install the application dependencies.
 RUN bash start.sh
