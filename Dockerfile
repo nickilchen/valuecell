@@ -4,6 +4,9 @@ WORKDIR /app
 # Copy the application into the container.
 COPY . /app
 
+RUN apt-get update && \
+    apt-get curl
+
 # Install the application dependencies.
 RUN bash start.sh
 
