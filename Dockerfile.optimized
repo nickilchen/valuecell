@@ -1,43 +1,10 @@
 # ============================================
-# ValueCell Docker 镜像
-# 多阶段构建，优化镜像大小和构建速度
+# ValueCell Docker 镜像 - 优化版
+# 使用预构建的前端资源，跳过前端构建步骤
 # ============================================
 
 # ============================================
-# 阶段 1: 前端构建
-# ============================================
-FROM node:20-alpine AS frontend-builder
-
-WORKDIR /app/frontend
-
-# 安装 pnpm (更快的包管理器)
-RUN npm install -g pnpm
-
-# 复制前端依赖文件
-COPY frontend/package.json frontend/pnpm-lock.yaml* frontend/package-lock.json* frontend/bun.lockb* ./
-
-# 安装前端依赖
-RUN if [ -f pnpm-lock.yaml ]; then \
-        pnpm install --frozen-lockfile; \
-    elif [ -f package-lock.json ]; then \
-        npm ci; \
-    elif [ -f bun.lockb ]; then \
-        npm install; \
-    else \
-        npm install; \
-    fi
-
-# 复制前端源代码
-COPY frontend/ ./
-
-# 设置 Node.js 环境变量以增加内存限制
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-
-# 构建前端生产版本
-RUN npm run build
-
-# ============================================
-# 阶段 2: Python 依赖安装
+# 阶段 1: Python 依赖安装
 # ============================================
 FROM python:3.12-slim AS python-builder
 
@@ -68,7 +35,7 @@ RUN uv venv --python 3.12 && \
 RUN uv run playwright install --with-deps chromium
 
 # ============================================
-# 阶段 3: 第三方 Agent 依赖安装
+# 阶段 2: 第三方 Agent 依赖安装
 # ============================================
 FROM python:3.12-slim AS third-party-builder
 
@@ -103,7 +70,7 @@ RUN if [ -f "pyproject.toml" ]; then \
     fi
 
 # ============================================
-# 阶段 4: 最终运行镜像
+# 阶段 3: 最终运行镜像
 # ============================================
 FROM python:3.12-slim
 
@@ -150,9 +117,10 @@ COPY --from=third-party-builder /app/python/third_party /app/python/third_party
 # 复制 Python 源代码
 COPY python/ /app/python/
 
-# 复制前端构建产物
-COPY --from=frontend-builder /app/frontend/build /app/frontend/build
-COPY --from=frontend-builder /app/frontend/package.json /app/frontend/
+# 复制前端构建产物 (需要先在本地构建)
+# 如果没有预构建的前端，可以创建一个空目录
+COPY frontend/build /app/frontend/build 2>/dev/null || mkdir -p /app/frontend/build
+COPY frontend/package.json /app/frontend/ 2>/dev/null || echo '{"name":"frontend"}' > /app/frontend/package.json
 
 # 复制配置文件
 COPY .env.example /app/.env.example
@@ -175,9 +143,7 @@ WORKDIR /app/python
 RUN uv run valuecell/server/db/init_db.py || true
 
 # 暴露端口
-# 8000: 后端 API
-# 1420: 前端 (如果需要单独运行)
-EXPOSE 8000 1420
+EXPOSE 8000
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

@@ -29,15 +29,30 @@ help: ## 显示帮助信息
 
 ##@ 生产环境
 
-build: ## 构建生产镜像
+build: ## 构建生产镜像（使用 Node.js 构建前端）
 	@echo "$(BLUE)构建生产镜像...$(NC)"
 	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
 	@echo "$(GREEN)✓ 镜像构建完成$(NC)"
+
+build-optimized: ## 优化构建（需要预构建前端）
+	@echo "$(BLUE)检查前端构建产物...$(NC)"
+	@if [ ! -d "frontend/build" ]; then \
+		echo "$(YELLOW)前端未构建，正在构建...$(NC)"; \
+		cd frontend && npm install && npm run build && cd ..; \
+	fi
+	@echo "$(BLUE)构建优化镜像...$(NC)"
+	docker build -f Dockerfile.optimized -t $(IMAGE_NAME):$(IMAGE_TAG) .
+	@echo "$(GREEN)✓ 优化镜像构建完成$(NC)"
 
 build-no-cache: ## 无缓存构建生产镜像
 	@echo "$(BLUE)无缓存构建生产镜像...$(NC)"
 	docker build --no-cache -t $(IMAGE_NAME):$(IMAGE_TAG) .
 	@echo "$(GREEN)✓ 镜像构建完成$(NC)"
+
+build-frontend: ## 本地构建前端
+	@echo "$(BLUE)构建前端...$(NC)"
+	cd frontend && npm install && npm run build
+	@echo "$(GREEN)✓ 前端构建完成$(NC)"
 
 run: ## 运行生产容器
 	@echo "$(BLUE)启动生产容器...$(NC)"
