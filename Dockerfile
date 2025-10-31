@@ -16,8 +16,7 @@ RUN npm install -g pnpm
 # 复制前端依赖文件
 COPY frontend/package.json ./
 
-# 安装前端依赖（不使用锁文件，确保兼容性）
-RUN npm install --legacy-peer-deps
+RUN pnpm install 
 
 # 复制前端源代码
 COPY frontend/ ./
