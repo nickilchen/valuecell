@@ -34,6 +34,7 @@ ValueCell Docker 构建脚本
 选项:
   --no-frontend         跳过前端构建（使用优化版 Dockerfile）
   --optimized           使用优化版 Dockerfile（需要预构建前端）
+  --cn                  使用中国优化版 Dockerfile（国内镜像源）
   --tag TAG             指定镜像标签（默认: latest）
   --platform PLATFORM   指定构建平台（如: linux/amd64）
   -h, --help            显示帮助信息
@@ -48,13 +49,21 @@ ValueCell Docker 构建脚本
      - 跳过 Docker 中的前端构建步骤
      - 构建速度更快
      
-  3. 无前端构建（--no-frontend）
+  3. 中国优化构建（--cn）
+     - 使用国内镜像源（npm、pip、apt）
+     - 加速构建过程
+     - 适合中国大陆用户
+     
+  4. 无前端构建（--no-frontend）
      - 只构建后端服务
      - 适用于纯 API 部署
 
 示例:
   # 标准构建
   ./build-docker.sh
+  
+  # 中国优化构建（推荐国内用户）
+  ./build-docker.sh --cn
   
   # 优化构建（先构建前端）
   cd frontend && npm run build && cd ..
@@ -78,6 +87,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --optimized)
             BUILD_TYPE="optimized"
+            shift
+            ;;
+        --cn)
+            BUILD_TYPE="cn"
             shift
             ;;
         --tag)
@@ -115,6 +128,17 @@ case $BUILD_TYPE in
     standard)
         info "使用标准 Dockerfile（Node.js 构建前端）"
         DOCKERFILE="Dockerfile"
+        
+        # 检查前端目录
+        if [ ! -d "frontend" ]; then
+            error "frontend 目录不存在"
+            exit 1
+        fi
+        ;;
+        
+    cn)
+        info "使用中国优化版 Dockerfile（国内镜像源）"
+        DOCKERFILE="Dockerfile.cn"
         
         # 检查前端目录
         if [ ! -d "frontend" ]; then

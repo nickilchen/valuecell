@@ -115,7 +115,36 @@ error: script "build" was killed by signal SIGKILL
 docker build --memory=8g -t valuecell:latest .
 ```
 
-### 2. 网络问题
+### 2. 前端依赖安装失败
+
+**症状**:
+```
+error: failed to solve: process "/bin/sh -c ... npm install ..." did not complete successfully: exit code: 1
+```
+
+**原因**:
+- 依赖版本冲突
+- 锁文件不兼容
+- 网络问题
+
+**解决方案**:
+```bash
+# 方案 1: 使用 --legacy-peer-deps（已在 Dockerfile 中使用）
+# 这会忽略 peer dependencies 冲突
+
+# 方案 2: 使用国内镜像源
+# 在 Dockerfile 中添加：
+RUN npm config set registry https://registry.npmmirror.com
+
+# 方案 3: 使用代理
+docker build --build-arg HTTP_PROXY=http://proxy:port -t valuecell:latest .
+
+# 方案 4: 本地构建前端（推荐）
+cd frontend && npm install && npm run build && cd ..
+docker build -f Dockerfile.optimized -t valuecell:latest .
+```
+
+### 3. 网络问题
 
 **症状**:
 ```
@@ -132,7 +161,7 @@ RUN npm config set registry https://registry.npmmirror.com
 docker build --build-arg HTTP_PROXY=http://proxy:port -t valuecell:latest .
 ```
 
-### 3. 平台兼容性问题
+### 4. 平台兼容性问题
 
 **症状**:
 ```
@@ -148,7 +177,7 @@ docker build --platform linux/amd64 -t valuecell:latest .
 docker build --platform linux/arm64 -t valuecell:latest .
 ```
 
-### 4. 依赖安装失败
+### 5. Python 依赖安装失败
 
 **症状**:
 ```
@@ -160,10 +189,10 @@ error: failed to solve: process "/bin/sh -c uv sync" did not complete successful
 # 清理缓存重新构建
 docker build --no-cache -t valuecell:latest .
 
-# 检查 pyproject.toml 和 package.json 是否正确
+# 检查 pyproject.toml 是否正确
 ```
 
-### 5. Playwright 安装失败
+### 6. Playwright 安装失败
 
 **症状**:
 ```
