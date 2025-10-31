@@ -11,12 +11,12 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 # 安装 pnpm (更快的包管理器)
-RUN npm install -g pnpm
+#RUN npm install -g pnpm
 
 # 复制前端依赖文件
 COPY frontend/package.json ./
 
-RUN pnpm install 
+RUN npm install 
 
 # 复制前端源代码
 COPY frontend/ ./
